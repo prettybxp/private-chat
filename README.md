@@ -28,6 +28,13 @@ npm run build
 npm start
 ```
 
+或使用后台启动脚本（使用 `/tmp/node-v20.18.1-linux-x64/bin/node`）：
+
+```bash
+./start.sh    # 后台启动，日志写入 chat.log
+./stop.sh     # 停止
+```
+
 浏览器访问：<http://127.0.0.1:8088>  
 局域网：<http://你的本机IP:8088>
 

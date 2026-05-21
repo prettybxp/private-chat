@@ -8,7 +8,7 @@ const RATE_LIMIT_PER_SEC = 5;
 
 type MemberEntry = {
   nickname: string;
-  ws: WebSocket;
+  connections: Set<WebSocket>;
 };
 
 export class Room {
@@ -16,22 +16,25 @@ export class Room {
   private members = new Map<string, MemberEntry>();
   private rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
+  /** 同一 clientId 允许多个连接（多标签页），不再踢掉旧连接 */
   join(clientId: string, nickname: string, ws: WebSocket): void {
-    const existing = this.members.get(clientId);
-    if (existing && existing.ws !== ws) {
-      try {
-        existing.ws.close();
-      } catch {
-        /* ignore */
-      }
+    let entry = this.members.get(clientId);
+    if (!entry) {
+      entry = { nickname, connections: new Set() };
+      this.members.set(clientId, entry);
+    } else {
+      entry.nickname = nickname;
     }
-    this.members.set(clientId, { nickname, ws });
+    entry.connections.add(ws);
   }
 
   leave(clientId: string, ws: WebSocket): boolean {
     const entry = this.members.get(clientId);
-    if (!entry || entry.ws !== ws) return false;
-    this.members.delete(clientId);
+    if (!entry || !entry.connections.has(ws)) return false;
+    entry.connections.delete(ws);
+    if (entry.connections.size === 0) {
+      this.members.delete(clientId);
+    }
     return true;
   }
 
@@ -81,7 +84,7 @@ export class Room {
 
   isJoined(clientId: string, ws: WebSocket): boolean {
     const entry = this.members.get(clientId);
-    return entry !== undefined && entry.ws === ws;
+    return entry !== undefined && entry.connections.has(ws);
   }
 
   getNickname(clientId: string): string | undefined {
@@ -89,8 +92,10 @@ export class Room {
   }
 
   forEachSocket(fn: (ws: WebSocket) => void): void {
-    for (const { ws } of this.members.values()) {
-      if (ws.readyState === ws.OPEN) fn(ws);
+    for (const { connections } of this.members.values()) {
+      for (const ws of connections) {
+        if (ws.readyState === ws.OPEN) fn(ws);
+      }
     }
   }
 
