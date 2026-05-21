@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>聊天室管理后台</title>
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body>
+    <div id="login-view" class="login-view">
+      <form id="login-form" class="login-card">
+        <h1>管理后台</h1>
+        <input id="password" type="password" placeholder="管理员密码" autocomplete="current-password" />
+        <p id="login-error" class="error hidden"></p>
+        <button type="submit">登录</button>
+      </form>
+    </div>
+
+    <div id="app-view" class="app-view hidden">
+      <header class="topbar">
+        <h1>私人聊天室 · 管理</h1>
+        <button id="logout-btn" type="button">退出</button>
+      </header>
+      <nav class="tabs">
+        <button type="button" class="tab active" data-tab="messages">聊天记录</button>
+        <button type="button" class="tab" data-tab="users">用户档案</button>
+      </nav>
+
+      <section id="tab-messages" class="panel">
+        <div class="filters">
+          <input id="filter-nickname" type="text" placeholder="昵称筛选" />
+          <input id="filter-from" type="datetime-local" />
+          <input id="filter-to" type="datetime-local" />
+          <button id="filter-btn" type="button">查询</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>昵称</th>
+              <th>用户ID</th>
+              <th>内容</th>
+            </tr>
+          </thead>
+          <tbody id="messages-body"></tbody>
+        </table>
+        <div class="pager">
+          <button id="prev-page" type="button">上一页</button>
+          <span id="page-info"></span>
+          <button id="next-page" type="button">下一页</button>
+        </div>
+      </section>
+
+      <section id="tab-users" class="panel hidden">
+        <div id="users-list" class="users-list"></div>
+      </section>
+    </div>
+    <script type="module" src="./admin.ts"></script>
+  </body>
+</html>

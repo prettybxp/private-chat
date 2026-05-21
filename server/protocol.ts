@@ -11,10 +11,13 @@ export type Member = {
   nickname: string;
 };
 
+export type ClientInfo = Record<string, string | number | boolean | string[] | null>;
+
 export type ClientJoin = {
   type: "join";
   clientId: string;
   nickname: string;
+  clientInfo?: ClientInfo;
 };
 
 export type ClientChat = {

@@ -9,6 +9,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../dist/client"),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        admin: path.resolve(__dirname, "admin/index.html"),
+      },
+    },
   },
   server: {
     host: "0.0.0.0",
@@ -17,6 +23,9 @@ export default defineConfig({
       "/ws": {
         target: "ws://localhost:8088",
         ws: true,
+      },
+      "/api": {
+        target: "http://localhost:8088",
       },
     },
   },

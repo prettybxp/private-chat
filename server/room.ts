@@ -42,6 +42,10 @@ export class Room {
     return [...this.messages];
   }
 
+  loadHistory(messages: Message[]): void {
+    this.messages = messages.slice(-MAX_MESSAGES);
+  }
+
   getMembers(): Member[] {
     const nicknames = new Map<string, number>();
     for (const { nickname } of this.members.values()) {

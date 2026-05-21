@@ -1,3 +1,4 @@
+import { collectClientInfo } from "./client-info";
 import type { Member, Message } from "./types";
 
 type ServerPayload =
@@ -29,6 +30,7 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let joined = false;
+let pendingClientInfo: Awaited<ReturnType<typeof collectClientInfo>> | null = null;
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
@@ -139,6 +141,7 @@ function sendJoin(): void {
       type: "join",
       clientId: getClientId(),
       nickname,
+      clientInfo: pendingClientInfo || undefined,
     })
   );
 }
@@ -218,10 +221,11 @@ function scheduleReconnect(): void {
   }, delay);
 }
 
-function enterChat(nickname: string): void {
+async function enterChat(nickname: string): Promise<void> {
   setCookie(COOKIE_NICKNAME, nickname.trim());
   modal.classList.add("hidden");
   chat.classList.remove("hidden");
+  pendingClientInfo = await collectClientInfo();
   connect();
 }
 
