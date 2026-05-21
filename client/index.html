@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>私人聊天室</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="modal" class="modal hidden">
+        <div class="modal-card">
+          <h1>进入聊天室</h1>
+          <p class="modal-hint">输入昵称后即可开始聊天</p>
+          <input
+            id="nickname-input"
+            type="text"
+            maxlength="20"
+            placeholder="昵称（1–20 字）"
+            autocomplete="off"
+          />
+          <p id="modal-error" class="error hidden"></p>
+          <button id="nickname-submit" type="button">进入</button>
+        </div>
+      </div>
+
+      <div id="chat" class="chat hidden">
+        <div id="banner" class="banner hidden">连接断开，正在重连…</div>
+        <div class="layout">
+          <section class="main-panel">
+            <header class="chat-header">
+              <h1>私人聊天室</h1>
+            </header>
+            <div id="messages" class="messages"></div>
+            <form id="composer" class="composer">
+              <textarea
+                id="message-input"
+                rows="2"
+                maxlength="2000"
+                placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+              ></textarea>
+              <button id="send-btn" type="submit">发送</button>
+            </form>
+          </section>
+          <aside class="sidebar">
+            <h2 id="members-title">在线 (0)</h2>
+            <ul id="members-list" class="members-list"></ul>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
