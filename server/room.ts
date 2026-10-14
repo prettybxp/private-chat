@@ -1,14 +1,20 @@
 import { randomUUID } from "crypto";
 import type { WebSocket } from "ws";
-import type { Member, Message } from "./protocol.js";
+import type { ChatFile, ConnectionSource, Member, Message, Presence } from "./protocol.js";
 
 const MAX_MESSAGES = 100;
 const MAX_TEXT_LENGTH = 2000;
 const RATE_LIMIT_PER_SEC = 5;
 
+type ConnectionMeta = {
+  source: ConnectionSource;
+  /** 仅 page 连接有效；extension 忽略 */
+  active: boolean;
+};
+
 type MemberEntry = {
   nickname: string;
-  connections: Set<WebSocket>;
+  connections: Map<WebSocket, ConnectionMeta>;
 };
 
 export class Room {
@@ -16,16 +22,36 @@ export class Room {
   private members = new Map<string, MemberEntry>();
   private rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-  /** 同一 clientId 允许多个连接（多标签页），不再踢掉旧连接 */
-  join(clientId: string, nickname: string, ws: WebSocket): void {
+  /** 同一 clientId 允许多个连接（多标签页 + 插件），不再踢掉旧连接 */
+  join(
+    clientId: string,
+    nickname: string,
+    ws: WebSocket,
+    source: ConnectionSource = "page"
+  ): void {
     let entry = this.members.get(clientId);
     if (!entry) {
-      entry = { nickname, connections: new Set() };
+      entry = { nickname, connections: new Map() };
       this.members.set(clientId, entry);
     } else {
       entry.nickname = nickname;
     }
-    entry.connections.add(ws);
+    entry.connections.set(ws, {
+      source,
+      active: source === "page",
+    });
+  }
+
+  setActivity(ws: WebSocket, active: boolean): string | null {
+    for (const [clientId, entry] of this.members) {
+      const meta = entry.connections.get(ws);
+      if (!meta || meta.source !== "page") continue;
+      const before = presenceOf(entry);
+      meta.active = active;
+      const after = presenceOf(entry);
+      return before !== after ? clientId : null;
+    }
+    return null;
   }
 
   leave(clientId: string, ws: WebSocket): boolean {
@@ -46,6 +72,10 @@ export class Room {
     this.messages = messages.slice(-MAX_MESSAGES);
   }
 
+  clearHistory(): void {
+    this.messages = [];
+  }
+
   getMembers(): Member[] {
     const nicknames = new Map<string, number>();
     for (const { nickname } of this.members.values()) {
@@ -53,30 +83,43 @@ export class Room {
     }
 
     const result: Member[] = [];
-    for (const [clientId, { nickname }] of this.members) {
-      const duplicate = (nicknames.get(nickname) ?? 0) > 1;
+    for (const [clientId, entry] of this.members) {
+      const duplicate = (nicknames.get(entry.nickname) ?? 0) > 1;
       result.push({
         clientId,
         nickname: duplicate
-          ? `${nickname}#${clientId.slice(-4)}`
-          : nickname,
+          ? `${entry.nickname}#${clientId.slice(-4)}`
+          : entry.nickname,
+        presence: presenceOf(entry),
       });
     }
-    return result.sort((a, b) => a.nickname.localeCompare(b.nickname, "zh"));
+    return result.sort((a, b) => {
+      const rank = (p: Presence) => (p === "online" ? 0 : p === "idle" ? 1 : 2);
+      const d = rank(a.presence) - rank(b.presence);
+      if (d !== 0) return d;
+      return a.nickname.localeCompare(b.nickname, "zh");
+    });
   }
 
-  addMessage(clientId: string, nickname: string, text: string): Message | null {
+  addMessage(
+    clientId: string,
+    nickname: string,
+    text: string,
+    image: string | null = null,
+    file: ChatFile | null = null
+  ): Message | null {
     if (!this.checkRateLimit(clientId)) return null;
-
-    const trimmed = text.trim();
-    if (!trimmed || trimmed.length > MAX_TEXT_LENGTH) return null;
+    if (image && file) return null;
+    if ((!text && !image && !file) || text.length > MAX_TEXT_LENGTH) return null;
 
     const message: Message = {
       id: randomUUID(),
       clientId,
       nickname,
-      text: trimmed,
+      text,
       ts: Date.now(),
+      ...(image ? { image } : {}),
+      ...(file ? { file } : {}),
     };
 
     this.messages.push(message);
@@ -97,7 +140,7 @@ export class Room {
 
   forEachSocket(fn: (ws: WebSocket) => void): void {
     for (const { connections } of this.members.values()) {
-      for (const ws of connections) {
+      for (const ws of connections.keys()) {
         if (ws.readyState === ws.OPEN) fn(ws);
       }
     }
@@ -117,14 +160,41 @@ export class Room {
 
 export const room = new Room();
 
+function presenceOf(entry: MemberEntry): Presence {
+  let hasPage = false;
+  let hasActivePage = false;
+  for (const meta of entry.connections.values()) {
+    if (meta.source === "page") {
+      hasPage = true;
+      if (meta.active) hasActivePage = true;
+    }
+  }
+  if (hasActivePage) return "online";
+  if (hasPage) return "idle";
+  return "listening";
+}
+
+export function sanitizeSource(raw: unknown): ConnectionSource {
+  return raw === "extension" ? "extension" : "page";
+}
+
 export function sanitizeNickname(raw: string): string | null {
   const trimmed = raw.trim().replace(/<[^>]*>/g, "");
   if (trimmed.length < 1 || trimmed.length > 20) return null;
   return trimmed;
 }
 
-export function sanitizeText(raw: string): string | null {
+/** 图片消息允许空文字；过长返回 null */
+export function sanitizeCaption(raw: unknown): string | null {
+  if (raw == null) return "";
+  if (typeof raw !== "string") return null;
   const trimmed = raw.trim().replace(/<[^>]*>/g, "");
-  if (!trimmed || trimmed.length > MAX_TEXT_LENGTH) return null;
+  if (trimmed.length > MAX_TEXT_LENGTH) return null;
+  return trimmed;
+}
+
+export function sanitizeText(raw: string): string | null {
+  const trimmed = sanitizeCaption(raw);
+  if (!trimmed) return null;
   return trimmed;
 }

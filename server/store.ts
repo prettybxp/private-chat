@@ -154,6 +154,34 @@ export function getUser(clientId: string): UserRecord | null {
   return readUsersDb()[clientId] || null;
 }
 
+export function clearMessages(): { deleted: number } {
+  ensureDataDir();
+  let deleted = 0;
+  if (fs.existsSync(MESSAGES_FILE)) {
+    const content = fs.readFileSync(MESSAGES_FILE, "utf8");
+    deleted = content.split("\n").filter((l) => l.trim()).length;
+    fs.writeFileSync(MESSAGES_FILE, "");
+  }
+  return { deleted };
+}
+
+export function deleteUser(clientId: string): boolean {
+  const id = clientId.trim();
+  if (!id) return false;
+  const db = readUsersDb();
+  if (!db[id]) return false;
+  delete db[id];
+  writeUsersDb(db);
+  return true;
+}
+
+export function clearUsers(): { deleted: number } {
+  const db = readUsersDb();
+  const deleted = Object.keys(db).length;
+  writeUsersDb({});
+  return { deleted };
+}
+
 export function getDataDir(): string {
   return DATA_DIR;
 }

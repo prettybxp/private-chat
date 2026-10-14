@@ -32,6 +32,7 @@
           <input id="filter-from" type="datetime-local" />
           <input id="filter-to" type="datetime-local" />
           <button id="filter-btn" type="button">查询</button>
+          <button id="clear-messages-btn" type="button" class="danger">清空全部聊天记录</button>
         </div>
         <table class="data-table">
           <thead>
@@ -52,6 +53,9 @@
       </section>
 
       <section id="tab-users" class="panel hidden">
+        <div class="filters">
+          <button id="clear-users-btn" type="button" class="danger">清空全部用户档案</button>
+        </div>
         <div id="users-list" class="users-list"></div>
       </section>
     </div>

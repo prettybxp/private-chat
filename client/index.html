@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>私人聊天室</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -30,17 +31,34 @@
           <section class="main-panel">
             <header class="chat-header">
               <h1>私人聊天室</h1>
+              <p class="header-hint">
+                <a href="/private-chat-extension.zip" download>下载 Chrome 插件</a>
+                ，关闭本页仍可收到新消息
+              </p>
             </header>
             <div id="messages" class="messages"></div>
-            <form id="composer" class="composer">
-              <textarea
-                id="message-input"
-                rows="2"
-                maxlength="2000"
-                placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-              ></textarea>
-              <button id="send-btn" type="submit">发送</button>
-            </form>
+            <div class="composer-box">
+              <div id="image-preview" class="image-preview hidden"></div>
+              <p id="composer-error" class="error hidden"></p>
+              <form id="composer" class="composer">
+                <button id="image-btn" class="image-btn" type="button" title="发送图片">图片</button>
+                <button id="file-btn" class="image-btn" type="button" title="发送文件">文件</button>
+                <input
+                  id="image-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  hidden
+                />
+                <input id="file-input" type="file" hidden />
+                <textarea
+                  id="message-input"
+                  rows="2"
+                  maxlength="2000"
+                  placeholder="输入消息，Enter 发送；可发图片、文件，或粘贴截图"
+                ></textarea>
+                <button id="send-btn" type="submit">发送</button>
+              </form>
+            </div>
           </section>
           <aside class="sidebar">
             <h2 id="members-title">在线 (0)</h2>

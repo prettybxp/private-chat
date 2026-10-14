@@ -5,3 +5,4 @@ data/
 chat.log
 chat.pid
 .DS_Store
+client/public/private-chat-extension.zip

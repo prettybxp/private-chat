@@ -4,6 +4,8 @@ type Message = {
   nickname: string;
   text: string;
   ts: number;
+  image?: string;
+  file?: { url: string; name: string; size: number };
 };
 
 type UserRecord = {
@@ -55,6 +57,37 @@ function escapeHtml(s: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function safeImagePath(url: string | undefined): string | null {
+  if (!url) return null;
+  return /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:jpg|png|gif|webp)$/.test(
+    url
+  )
+    ? url
+    : null;
+}
+
+function safeFilePath(file: Message["file"]): { url: string; name: string } | null {
+  if (!file) return null;
+  if (!/^\/files\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(file.url)) {
+    return null;
+  }
+  if (!file.name) return null;
+  return { url: file.url, name: file.name };
+}
+
+function renderAdminBody(m: Message): string {
+  const image = safeImagePath(m.image);
+  const file = safeFilePath(m.file);
+  const text = m.text ? `<div>${escapeHtml(m.text)}</div>` : "";
+  const thumb = image
+    ? `<a href="${image}" target="_blank" rel="noopener"><img class="admin-thumb" src="${image}" alt="图片"></a>`
+    : "";
+  const link = file
+    ? `<div><a href="${file.url}?name=${encodeURIComponent(file.name)}">${escapeHtml(file.name)}</a></div>`
+    : "";
+  return text || thumb || link ? `${thumb}${link}${text}` : "—";
 }
 
 function formatLocalIps(info: Record<string, unknown>): string {
@@ -129,7 +162,7 @@ async function loadMessages(): Promise<void> {
       <td>${escapeHtml(formatTs(m.ts))}</td>
       <td>${escapeHtml(m.nickname)}</td>
       <td><code>${escapeHtml(m.clientId.slice(0, 8))}…</code></td>
-      <td>${escapeHtml(m.text)}</td>
+      <td>${renderAdminBody(m)}</td>
     `;
     messagesBody.appendChild(tr);
   }
@@ -155,6 +188,49 @@ document.getElementById("next-page")!.addEventListener("click", () => {
   loadMessages();
 });
 
+document.getElementById("clear-messages-btn")!.addEventListener("click", async () => {
+  if (!confirm("确定清空全部聊天记录？正在打开的聊天页也会立刻被清空。此操作不可恢复。")) {
+    return;
+  }
+  const res = await api("/api/admin/messages/clear", { method: "POST" });
+  if (!res.ok) {
+    alert("清空失败");
+    return;
+  }
+  const data = (await res.json()) as { deleted?: number };
+  currentPage = 1;
+  await loadMessages();
+  alert(`已清空 ${data.deleted ?? 0} 条聊天记录`);
+});
+
+document.getElementById("clear-users-btn")!.addEventListener("click", async () => {
+  if (!confirm("确定清空全部用户档案？不会踢出当前在线用户，对方再次进房会重新建档。此操作不可恢复。")) {
+    return;
+  }
+  const res = await api("/api/admin/users/clear", { method: "POST" });
+  if (!res.ok) {
+    alert("清空失败");
+    return;
+  }
+  const data = (await res.json()) as { deleted?: number };
+  await loadUsers();
+  alert(`已删除 ${data.deleted ?? 0} 个用户档案`);
+});
+
+async function deleteUser(clientId: string, nickname: string): Promise<void> {
+  if (!confirm(`确定删除用户「${nickname}」的档案？不会踢出当前在线连接，对方再次进房会重新建档。`)) {
+    return;
+  }
+  const res = await api(`/api/admin/users/${encodeURIComponent(clientId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    alert("删除失败");
+    return;
+  }
+  await loadUsers();
+}
+
 async function loadUsers(): Promise<void> {
   const res = await api("/api/admin/users");
   if (!res.ok) return;
@@ -166,7 +242,9 @@ async function loadUsers(): Promise<void> {
     const card = document.createElement("div");
     card.className = "user-card";
     card.innerHTML = `
-      <h3>${escapeHtml(u.nickname)}</h3>
+      <div class="user-card-head">
+        <h3>${escapeHtml(u.nickname)}</h3>
+      </div>
       <div class="user-meta">
         <div><strong>连接 IP</strong> ${escapeHtml(String(info.remoteIp || "—"))}</div>
         <div><strong>本机 IP（探测）</strong> ${escapeHtml(formatLocalIps(info))}</div>
@@ -176,6 +254,14 @@ async function loadUsers(): Promise<void> {
       </div>
       <pre class="user-json">${escapeHtml(JSON.stringify(info, null, 2))}</pre>
     `;
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "danger";
+    delBtn.textContent = "删除";
+    delBtn.addEventListener("click", () => {
+      deleteUser(u.clientId, u.nickname);
+    });
+    card.querySelector(".user-card-head")!.appendChild(delBtn);
     usersList.appendChild(card);
   }
 }

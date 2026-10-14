@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>私人聊天室</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>私人聊天室</h1>
+      <p id="status" class="status">检查中…</p>
+    </header>
+
+    <label class="toggle">
+      <input id="enabled" type="checkbox" />
+      <span>后台听消息</span>
+    </label>
+
+    <label class="field">
+      <span>服务器</span>
+      <input id="origin" type="url" placeholder="https://chat.ifbao.cn:6008" />
+    </label>
+
+    <p id="identity" class="identity">尚未在网页进入聊天室</p>
+
+    <div class="actions">
+      <button id="open-chat" type="button">打开聊天页</button>
+      <button id="save-origin" type="button" class="secondary">保存地址</button>
+    </div>
+
+    <p class="hint">
+      请先在聊天页填写昵称。关闭聊天页后，只要 Chrome 还在运行，插件会保持连接并以「挂机」显示。
+    </p>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>
