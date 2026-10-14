@@ -91,7 +91,7 @@ data/
 
 ### 安装
 
-压缩包：仓库根目录 `private-chat-extension.zip`，或在线下载 [https://chat.ifbao.cn:6008/private-chat-extension.zip](https://chat.ifbao.cn:6008/private-chat-extension.zip)。重新打包：`npm run pack:extension`。
+压缩包：仓库根目录 `private-chat-extension.zip`。重新打包：`npm run pack:extension`。
 
 1. 先在网页打开一次聊天室并填写昵称（写入 Cookie）。
 2. 下载 zip，解压到任意本地文件夹。
